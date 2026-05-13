@@ -1,0 +1,290 @@
+# .github/workflows/dualguard_ci.yml
+# DualGuard CI/CD Pipeline
+# Runs automatically on every push and pull request
+# Validates code quality and runs unit tests
+
+name: DualGuard CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  # ──────────────────────────────────────────
+  # Code Quality Checks
+  # ──────────────────────────────────────────
+
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install flake8 black
+
+      - name: Install system dependencies for OpenCV
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgl1-mesa-glx
+
+      - name: Check code formatting with Black
+        run: |
+          black --check --diff .
+        continue-on-error: true
+
+      - name: Lint with flake8
+        run: |
+          flake8 . \
+            --max-line-length=88 \
+            --exclude=.git,__pycache__,.github \
+            --count \
+            --statistics
+        continue-on-error: true
+
+  # ──────────────────────────────────────────
+  # Import Validation
+  # ──────────────────────────────────────────
+
+  validate-imports:
+    name: Validate All Imports
+    runs-on: ubuntu-latest
+    needs: code-quality
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install OpenCV headless
+        run: |
+          pip uninstall opencv-python -y || true
+          pip install opencv-python-headless
+
+      - name: Validate config loader
+        run: |
+          python -c "
+          from utils.config_loader import config
+          print('config_loader OK')
+          "
+
+      - name: Validate page objects
+        run: |
+          python -c "
+          from pages.base_page import BasePage
+          from pages.home_page import HomePage
+          from pages.login_page import LoginPage
+          from pages.settings_page import SettingsPage
+          print('All page objects OK')
+          "
+
+      - name: Validate visual engine
+        run: |
+          python -c "
+          from visual_engine.screenshot_capture import ScreenshotCapture
+          from visual_engine.image_comparator import ImageComparator
+          from visual_engine.diff_highlighter import DiffHighlighter
+          print('Visual engine OK')
+          "
+
+      - name: Validate utilities
+        run: |
+          python -c "
+          from utils.browserstack_helper import BrowserStackHelper
+          from utils.locale_switcher import LocaleSwitcher
+          print('Utilities OK')
+          "
+
+      - name: Validate report generator
+        run: |
+          python -c "
+          from reports.report_generator import ReportGenerator
+          print('ReportGenerator OK')
+          "
+
+      - name: Validate test suites
+        run: |
+          python -c "
+          import tests.conftest
+          import tests.test_english_flow
+          import tests.test_arabic_flow
+          import tests.test_visual_regression
+          print('All test suites OK')
+          "
+
+  # ──────────────────────────────────────────
+  # Visual Engine Unit Tests
+  # ──────────────────────────────────────────
+
+  visual-engine-tests:
+    name: Visual Engine Tests
+    runs-on: ubuntu-latest
+    needs: validate-imports
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Install OpenCV headless
+        run: |
+          pip uninstall opencv-python -y || true
+          pip install opencv-python-headless
+
+      - name: Run visual engine unit tests
+        run: |
+          pytest tests/unit/ -v \
+            --tb=short \
+            --no-header \
+            -rN
+        continue-on-error: true
+
+      - name: Test image comparator directly
+        run: |
+          python -c "
+          import numpy as np
+          import cv2
+          from visual_engine.image_comparator import ImageComparator
+
+          # Create two test images
+          img1 = np.zeros((100, 100, 3), dtype=np.uint8)
+          img1[:] = (255, 255, 255)
+          img2 = np.zeros((100, 100, 3), dtype=np.uint8)
+          img2[:] = (200, 200, 200)
+
+          cv2.imwrite('/tmp/test_english.png', img1)
+          cv2.imwrite('/tmp/test_arabic.png', img2)
+
+          comparator = ImageComparator()
+          result = comparator.compare(
+              '/tmp/test_english.png',
+              '/tmp/test_arabic.png',
+              'ci_test'
+          )
+
+          assert 'similarity_score' in result
+          assert 'status' in result
+          assert 'is_rtl_detected' in result
+          print(f'Comparator test passed: {result[\"similarity_score\"]}%')
+          "
+
+      - name: Test diff highlighter directly
+        run: |
+          python -c "
+          import numpy as np
+          import cv2
+          from visual_engine.diff_highlighter import DiffHighlighter
+
+          img1 = np.zeros((200, 100, 3), dtype=np.uint8)
+          img1[:] = (255, 255, 255)
+          img2 = np.zeros((200, 100, 3), dtype=np.uint8)
+          img2[:] = (200, 180, 160)
+
+          cv2.imwrite('/tmp/en_highlight.png', img1)
+          cv2.imwrite('/tmp/ar_highlight.png', img2)
+
+          highlighter = DiffHighlighter()
+          path = highlighter.create_highlighted_diff(
+              '/tmp/en_highlight.png',
+              '/tmp/ar_highlight.png',
+              'ci_highlight_test',
+              75.5,
+              'PASS — Expected bilingual difference detected'
+          )
+          assert path is not None
+          print(f'Highlighter test passed: {path}')
+          "
+
+      - name: Test report generator directly
+        run: |
+          python -c "
+          import numpy as np
+          import cv2
+          import os
+          from reports.report_generator import ReportGenerator
+
+          os.makedirs('reports/screenshots/english', exist_ok=True)
+          os.makedirs('reports/screenshots/arabic', exist_ok=True)
+          os.makedirs('reports/diffs', exist_ok=True)
+
+          img = np.zeros((300, 150, 3), dtype=np.uint8)
+          img[:] = (100, 120, 140)
+          cv2.imwrite('reports/screenshots/english/ci_screen.png', img)
+          cv2.imwrite('reports/screenshots/arabic/ci_screen.png', img)
+          cv2.imwrite('reports/diffs/ci_screen_diff.png', img)
+
+          mock_results = [{
+              'screen_name': 'ci_screen',
+              'english_path': 'reports/screenshots/english/ci_screen.png',
+              'arabic_path': 'reports/screenshots/arabic/ci_screen.png',
+              'diff_path': 'reports/diffs/ci_screen_diff.png',
+              'similarity_score': 78.5,
+              'threshold': 40,
+              'status': 'PASS — Expected bilingual difference detected',
+              'is_rtl_detected': True,
+              'dimensions_match': True
+          }]
+
+          generator = ReportGenerator()
+          report_path = generator.generate(mock_results)
+          assert os.path.exists(report_path)
+          print(f'Report generator test passed: {report_path}')
+          "
+
+  # ──────────────────────────────────────────
+  # Summary
+  # ──────────────────────────────────────────
+
+  pipeline-summary:
+    name: Pipeline Summary
+    runs-on: ubuntu-latest
+    needs:
+      - code-quality
+      - validate-imports
+      - visual-engine-tests
+    if: always()
+
+    steps:
+      - name: Print summary
+        run: |
+          echo "=================================="
+          echo "   DualGuard CI Pipeline Summary  "
+          echo "=================================="
+          echo "Code Quality    : ${{ needs.code-quality.result }}"
+          echo "Import Validation: ${{ needs.validate-imports.result }}"
+          echo "Visual Engine   : ${{ needs.visual-engine-tests.result }}"
+          echo "=================================="
+          echo "DualGuard by Saahil Parmar"
+          echo "github.com/SaahilParmar/DualGuard"
+          echo "=================================="

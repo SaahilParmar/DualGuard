@@ -32,7 +32,7 @@ class BrowserStackHelper:
         locale: 'english' or 'arabic'
         Returns: Appium WebDriver instance
         """
-        from appium.options import AppiumOptions
+        from appium.options.common.base import AppiumOptions
         device_config = config.get_device_config(locale)
         capabilities = self._build_capabilities(device_config, locale)
         options = AppiumOptions()

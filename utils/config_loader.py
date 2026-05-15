@@ -24,7 +24,18 @@ class ConfigLoader:
                 f"Config file not found at: {self.config_path}"
             )
         with open(self.config_path, "r") as f:
-            config = yaml.safe_load(f)
+            raw = f.read()
+
+        # Replace environment variable placeholders
+        import re
+        def replace_env(match):
+            var_name = match.group(1)
+            value = os.environ.get(var_name, "")
+            return value
+
+        raw = re.sub(r'\$\{(\w+)\}', replace_env, raw)
+        config = yaml.safe_load(raw)
+
         if config is None:
             raise ValueError("Config file is empty.")
         return config

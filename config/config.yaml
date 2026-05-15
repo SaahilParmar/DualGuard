@@ -6,9 +6,9 @@ app:
   apk_path: "apps/wikipedia.apk"
 
 browserstack:
-  username: "YOUR_BROWSERSTACK_USERNAME"
-  access_key: "YOUR_BROWSERSTACK_ACCESS_KEY"
-  app_url: "YOUR_APP_URL_AFTER_UPLOAD"
+  username: "${BROWSERSTACK_USERNAME}"
+  access_key: "${BROWSERSTACK_ACCESS_KEY}"
+  app_url: "${BROWSERSTACK_APP_URL}"
 
 devices:
   english:

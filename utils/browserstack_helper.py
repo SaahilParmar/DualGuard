@@ -32,11 +32,15 @@ class BrowserStackHelper:
         locale: 'english' or 'arabic'
         Returns: Appium WebDriver instance
         """
+        from appium.options import AppiumOptions
         device_config = config.get_device_config(locale)
         capabilities = self._build_capabilities(device_config, locale)
+        options = AppiumOptions()
+        for key, value in capabilities.items():
+            options.set_capability(key, value)
         driver = webdriver.Remote(
             command_executor=self.BROWSERSTACK_URL,
-            desired_capabilities=capabilities
+            options=options
         )
         return driver
 

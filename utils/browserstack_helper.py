@@ -14,7 +14,13 @@ class BrowserStackHelper:
     """
 
     # BrowserStack Appium server URL
-    BROWSERSTACK_URL = "https://hub-cloud.browserstack.com/wd/hub"
+    # Credentials embedded in URL for App Automate authentication
+    @property
+    def BROWSERSTACK_URL(self):
+        return (
+            f"https://{self.username}:{self.access_key}"
+            f"@hub-cloud.browserstack.com/wd/hub"
+        )
 
     def __init__(self):
         self.bs_config = config.get_browserstack_credentials()

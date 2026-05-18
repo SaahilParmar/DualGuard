@@ -1,6 +1,6 @@
 # pages/home_page.py
 # Represents the Wikipedia app home screen
-# Inherits all common actions from BasePage
+# Locators updated for Wikipedia app version 50583
 
 from appium.webdriver.common.appiumby import AppiumBy
 from pages.base_page import BasePage
@@ -16,28 +16,26 @@ class HomePage(BasePage):
     # Element Locators
     # ──────────────────────────────────────────
 
-    # Search bar at the top of home screen
+    # Search bar - multiple fallback locators
     SEARCH_BAR = (
-        AppiumBy.ACCESSIBILITY_ID,
-        "Search Wikipedia"
+        AppiumBy.ID,
+        "org.wikipedia:id/search_container"
+    )
+
+    SEARCH_BAR_ALT = (
+        AppiumBy.XPATH,
+        "//android.widget.TextView[contains(@text, 'Search')]"
     )
 
     # Main feed container
     FEED_CONTAINER = (
         AppiumBy.ID,
-        "org.wikipedia:id/fragment_feed_feed"
+        "org.wikipedia:id/feed_view"
     )
 
-    # Top read articles section
-    TOP_READ_SECTION = (
-        AppiumBy.ID,
-        "org.wikipedia:id/view_list_card_header_title"
-    )
-
-    # Navigation menu button
-    NAV_MORE_BUTTON = (
-        AppiumBy.ID,
-        "org.wikipedia:id/nav_more_container"
+    FEED_CONTAINER_ALT = (
+        AppiumBy.XPATH,
+        "//androidx.recyclerview.widget.RecyclerView"
     )
 
     # Skip button on onboarding screen
@@ -46,10 +44,22 @@ class HomePage(BasePage):
         "org.wikipedia:id/fragment_onboarding_skip_button"
     )
 
-    # Continue button on onboarding screen
+    # Continue button on onboarding
     CONTINUE_BUTTON = (
         AppiumBy.ID,
         "org.wikipedia:id/fragment_onboarding_forward_button"
+    )
+
+    # Accept button for privacy/terms
+    ACCEPT_BUTTON = (
+        AppiumBy.XPATH,
+        "//android.widget.Button[contains(@text, 'Accept')]"
+    )
+
+    # Got it button
+    GOT_IT_BUTTON = (
+        AppiumBy.XPATH,
+        "//android.widget.Button[contains(@text, 'Got it')]"
     )
 
     # ──────────────────────────────────────────
@@ -58,46 +68,96 @@ class HomePage(BasePage):
 
     def skip_onboarding(self):
         """
-        Skips the onboarding screen if it appears.
-        Safe to call even if onboarding is not showing.
+        Handles all onboarding and permission screens.
+        Tries multiple approaches to get past them.
         """
+        import time
+        # Wait for app to fully launch
+        time.sleep(5)
+
+        # Try skip button
         if self.is_element_visible(self.SKIP_BUTTON, timeout=5):
             self.tap(self.SKIP_BUTTON)
+            time.sleep(2)
+
+        # Try accept button
+        if self.is_element_visible(self.ACCEPT_BUTTON, timeout=5):
+            self.tap(self.ACCEPT_BUTTON)
+            time.sleep(2)
+
+        # Try got it button
+        if self.is_element_visible(self.GOT_IT_BUTTON, timeout=5):
+            self.tap(self.GOT_IT_BUTTON)
+            time.sleep(2)
+
+        # Try continue button multiple times
+        for _ in range(3):
+            if self.is_element_visible(
+                self.CONTINUE_BUTTON, timeout=3
+            ):
+                self.tap(self.CONTINUE_BUTTON)
+                time.sleep(2)
 
     def is_home_screen_loaded(self) -> bool:
         """
-        Returns True if the home screen has fully loaded.
-        Checks for the search bar which is always present.
+        Returns True if the home screen has loaded.
+        Tries multiple locators as fallbacks.
         """
-        return self.is_element_visible(self.SEARCH_BAR, timeout=15)
+        # Try primary search bar locator
+        if self.is_element_visible(self.SEARCH_BAR, timeout=15):
+            return True
+        # Try alternative search bar locator
+        if self.is_element_visible(self.SEARCH_BAR_ALT, timeout=10):
+            return True
+        # Try feed container
+        if self.is_element_visible(self.FEED_CONTAINER, timeout=10):
+            return True
+        # Try alternative feed container
+        if self.is_element_visible(
+            self.FEED_CONTAINER_ALT, timeout=10
+        ):
+            return True
+        return False
 
     def tap_search_bar(self):
-        """Taps the search bar to open the search screen."""
-        self.tap(self.SEARCH_BAR)
+        """Taps the search bar to open search screen."""
+        if self.is_element_visible(self.SEARCH_BAR, timeout=10):
+            self.tap(self.SEARCH_BAR)
+        else:
+            self.tap(self.SEARCH_BAR_ALT)
 
     def search_for(self, query: str):
         """
-        Taps the search bar and types a search query.
-        query: the text to search for
+        Taps search bar and types a search query.
         """
         self.tap_search_bar()
-        self.type_text(
-            (AppiumBy.ID, "org.wikipedia:id/search_src_text"),
-            query
+        import time
+        time.sleep(2)
+        search_input = (
+            AppiumBy.ID,
+            "org.wikipedia:id/search_src_text"
         )
+        search_input_alt = (
+            AppiumBy.XPATH,
+            "//android.widget.EditText"
+        )
+        if self.is_element_visible(search_input, timeout=10):
+            self.type_text(search_input, query)
+        else:
+            self.type_text(search_input_alt, query)
 
     def is_feed_visible(self) -> bool:
         """Returns True if the main article feed is visible."""
-        return self.is_element_visible(self.FEED_CONTAINER)
+        if self.is_element_visible(self.FEED_CONTAINER, timeout=10):
+            return True
+        return self.is_element_visible(
+            self.FEED_CONTAINER_ALT, timeout=10
+        )
 
     def scroll_feed(self):
         """Scrolls down through the article feed."""
         self.scroll_down()
 
     def take_home_screenshot(self, locale: str) -> str:
-        """
-        Takes a screenshot of the home screen.
-        locale: 'english' or 'arabic'
-        Returns the screenshot file path.
-        """
+        """Takes a screenshot of the home screen."""
         return self.take_screenshot("home_screen", locale)

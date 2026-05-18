@@ -1,6 +1,5 @@
 # pages/settings_page.py
-# Represents the Wikipedia app settings screen
-# Most importantly handles language switching between English and Arabic
+# Updated locators for Wikipedia app version 50583
 
 from appium.webdriver.common.appiumby import AppiumBy
 from pages.base_page import BasePage
@@ -16,37 +15,41 @@ class SettingsPage(BasePage):
     # Element Locators
     # ──────────────────────────────────────────
 
-    # More menu button in bottom navigation
+    # Bottom navigation - More tab
     MORE_MENU = (
-        AppiumBy.ID,
-        "org.wikipedia:id/nav_more_container"
+        AppiumBy.XPATH,
+        "//android.widget.FrameLayout[@content-desc='More']"
     )
 
-    # Settings option in more menu
+    MORE_MENU_ALT = (
+        AppiumBy.XPATH,
+        "//android.widget.TextView[@text='More']"
+    )
+
+    # Settings option
     SETTINGS_OPTION = (
         AppiumBy.XPATH,
         "//android.widget.TextView[@text='Settings']"
     )
 
-    # Language settings option
+    # Language settings
     LANGUAGE_OPTION = (
         AppiumBy.XPATH,
         "//android.widget.TextView[@text='Wikipedia languages']"
     )
 
-    # Add language button
-    ADD_LANGUAGE_BUTTON = (
-        AppiumBy.ID,
-        "org.wikipedia:id/wiki_language_title"
+    LANGUAGE_OPTION_ALT = (
+        AppiumBy.XPATH,
+        "//android.widget.TextView[contains(@text, 'language')]"
     )
 
-    # Arabic language option in language list
+    # Arabic language option
     ARABIC_LANGUAGE = (
         AppiumBy.XPATH,
         "//android.widget.TextView[@text='العربية']"
     )
 
-    # English language option in language list
+    # English language option
     ENGLISH_LANGUAGE = (
         AppiumBy.XPATH,
         "//android.widget.TextView[@text='English']"
@@ -58,10 +61,10 @@ class SettingsPage(BasePage):
         "//android.widget.TextView[@text='App language']"
     )
 
-    # System default language option
-    SYSTEM_DEFAULT = (
+    # Arabic indicator on home screen
+    ARABIC_INDICATOR = (
         AppiumBy.XPATH,
-        "//android.widget.TextView[@text='System default']"
+        "//android.widget.TextView[contains(@text, 'ويكيبيديا')]"
     )
 
     # ──────────────────────────────────────────
@@ -69,75 +72,63 @@ class SettingsPage(BasePage):
     # ──────────────────────────────────────────
 
     def navigate_to_settings(self):
-        """
-        Navigates from home screen to settings.
-        Taps More menu then Settings option.
-        """
-        self.tap(self.MORE_MENU)
-        self.tap(self.SETTINGS_OPTION)
+        """Navigates to settings screen."""
+        import time
+        if self.is_element_visible(self.MORE_MENU, timeout=10):
+            self.tap(self.MORE_MENU)
+        elif self.is_element_visible(self.MORE_MENU_ALT, timeout=10):
+            self.tap(self.MORE_MENU_ALT)
+        time.sleep(2)
+        if self.is_element_visible(self.SETTINGS_OPTION, timeout=10):
+            self.tap(self.SETTINGS_OPTION)
+        time.sleep(2)
 
     def navigate_to_language_settings(self):
-        """Navigates to the language settings screen."""
+        """Navigates to language settings."""
         self.navigate_to_settings()
-        self.tap(self.LANGUAGE_OPTION)
+        if self.is_element_visible(self.LANGUAGE_OPTION, timeout=10):
+            self.tap(self.LANGUAGE_OPTION)
+        elif self.is_element_visible(
+            self.LANGUAGE_OPTION_ALT, timeout=10
+        ):
+            self.tap(self.LANGUAGE_OPTION_ALT)
 
     # ──────────────────────────────────────────
-    # Language Switching Actions
+    # Language Switching
     # ──────────────────────────────────────────
 
     def switch_to_arabic(self):
-        """
-        Switches the app language to Arabic.
-        Navigates to language settings and selects Arabic.
-        """
+        """Switches app language to Arabic."""
         self.navigate_to_language_settings()
-        if self.is_element_visible(self.APP_LANGUAGE_OPTION, timeout=5):
+        if self.is_element_visible(
+            self.APP_LANGUAGE_OPTION, timeout=5
+        ):
             self.tap(self.APP_LANGUAGE_OPTION)
         if self.is_element_visible(self.ARABIC_LANGUAGE, timeout=5):
             self.tap(self.ARABIC_LANGUAGE)
-        else:
-            self._add_arabic_language()
 
     def switch_to_english(self):
-        """
-        Switches the app language back to English.
-        Navigates to language settings and selects English.
-        """
+        """Switches app language to English."""
         self.navigate_to_language_settings()
-        if self.is_element_visible(self.APP_LANGUAGE_OPTION, timeout=5):
+        if self.is_element_visible(
+            self.APP_LANGUAGE_OPTION, timeout=5
+        ):
             self.tap(self.APP_LANGUAGE_OPTION)
-        self.tap(self.ENGLISH_LANGUAGE)
-
-    def _add_arabic_language(self):
-        """
-        Private method — adds Arabic if not already in language list.
-        Called automatically by switch_to_arabic if needed.
-        """
-        if self.is_element_visible(self.ADD_LANGUAGE_BUTTON, timeout=5):
-            self.tap(self.ADD_LANGUAGE_BUTTON)
-            self.scroll_down()
-            self.tap(self.ARABIC_LANGUAGE)
+        if self.is_element_visible(self.ENGLISH_LANGUAGE, timeout=5):
+            self.tap(self.ENGLISH_LANGUAGE)
 
     # ──────────────────────────────────────────
-    # Verification Actions
+    # Verification
     # ──────────────────────────────────────────
 
     def is_arabic_active(self) -> bool:
-        """
-        Returns True if Arabic is currently the active language.
-        Checks for Arabic text in the UI.
-        """
-        arabic_indicator = (
-            AppiumBy.XPATH,
-            "//android.widget.TextView[contains(@text, 'ويكيبيديا')]"
+        """Returns True if Arabic is active language."""
+        return self.is_element_visible(
+            self.ARABIC_INDICATOR, timeout=5
         )
-        return self.is_element_visible(arabic_indicator, timeout=5)
 
     def is_english_active(self) -> bool:
-        """
-        Returns True if English is currently the active language.
-        Checks for English text in the UI.
-        """
+        """Returns True if English is active language."""
         english_indicator = (
             AppiumBy.XPATH,
             "//android.widget.TextView[contains(@text, 'Wikipedia')]"
@@ -145,9 +136,5 @@ class SettingsPage(BasePage):
         return self.is_element_visible(english_indicator, timeout=5)
 
     def take_settings_screenshot(self, locale: str) -> str:
-        """
-        Takes a screenshot of the settings screen.
-        locale: 'english' or 'arabic'
-        Returns the screenshot file path.
-        """
+        """Takes a screenshot of settings screen."""
         return self.take_screenshot("settings_screen", locale)

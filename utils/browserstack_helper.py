@@ -55,8 +55,6 @@ class BrowserStackHelper:
     ) -> dict:
         """
         Builds the capabilities dictionary for BrowserStack.
-        These tell BrowserStack exactly which device and
-        settings to use.
         """
         capabilities = {
             # App to test
@@ -67,10 +65,12 @@ class BrowserStackHelper:
             "platformVersion": device_config.get("os_version"),
             "platformName": "Android",
 
-            # Locale and language settings
-            # BrowserStack format: language=en, locale=en_US
-            "browserstack.locale": device_config.get("locale"),
-            "browserstack.language": device_config.get("language"),
+            # App package and activity
+            "appPackage": "org.wikipedia",
+            "appActivity": "org.wikipedia.main.MainActivity",
+            "autoGrantPermissions": True,
+            "noReset": False,
+            "fullReset": False,
 
             # BrowserStack credentials
             "browserstack.user": self.username,
@@ -87,7 +87,6 @@ class BrowserStackHelper:
             "browserstack.deviceLogs": True,
             "browserstack.debug": True,
             "newCommandTimeout": 300,
-            "autoGrantPermissions": True,
         }
         return capabilities
 

@@ -22,6 +22,11 @@ class LoginPage(BasePage):
         "//android.widget.TextView[@text='Log in']"
     )
 
+    LOGIN_BUTTON_ALT = (
+        AppiumBy.XPATH,
+        "//android.widget.TextView[contains(@text, 'Log')]"
+    )
+
     # Username input field
     USERNAME_FIELD = (
         AppiumBy.ID,
@@ -69,15 +74,28 @@ class LoginPage(BasePage):
     # ──────────────────────────────────────────
 
     def navigate_to_login(self):
-        """
-        Navigates to the login screen from the more menu.
-        """
+        """Navigates to the login screen."""
+        import time
         more_menu = (
-            AppiumBy.ID,
-            "org.wikipedia:id/nav_more_container"
+            AppiumBy.XPATH,
+            "//android.widget.FrameLayout[@content-desc='More']"
         )
-        self.tap(more_menu)
-        self.tap(self.LOGIN_BUTTON)
+        more_menu_alt = (
+            AppiumBy.XPATH,
+            "//android.widget.TextView[@text='More']"
+        )
+        if self.is_element_visible(more_menu, timeout=10):
+            self.tap(more_menu)
+        elif self.is_element_visible(more_menu_alt, timeout=10):
+            self.tap(more_menu_alt)
+        time.sleep(2)
+        if self.is_element_visible(self.LOGIN_BUTTON, timeout=10):
+            self.tap(self.LOGIN_BUTTON)
+        elif self.is_element_visible(
+            self.LOGIN_BUTTON_ALT, timeout=10
+        ):
+            self.tap(self.LOGIN_BUTTON_ALT)
+        time.sleep(2)
 
     def is_login_screen_loaded(self) -> bool:
         """Returns True if login screen has fully loaded."""

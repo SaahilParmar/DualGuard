@@ -68,8 +68,9 @@ class BrowserStackHelper:
             "platformName": "Android",
 
             # Locale and language settings
-            "language": device_config.get("language"),
-            "locale": device_config.get("locale"),
+            # BrowserStack format: language=en, locale=en_US
+            "browserstack.locale": device_config.get("locale"),
+            "browserstack.language": device_config.get("language"),
 
             # BrowserStack credentials
             "browserstack.user": self.username,

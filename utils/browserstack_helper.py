@@ -65,6 +65,9 @@ class BrowserStackHelper:
             "platformVersion": device_config.get("os_version"),
             "platformName": "Android",
 
+            # Automation engine
+            "automationName": "UiAutomator2",
+
             # App package and activity
             "appPackage": "org.wikipedia",
             "appActivity": "org.wikipedia.main.MainActivity",
@@ -78,11 +81,12 @@ class BrowserStackHelper:
 
             # BrowserStack session settings
             "project": "DualGuard",
-            "build": f"DualGuard - {locale.capitalize()} Tests",
+            "build": (
+                f"DualGuard - {locale.capitalize()} Tests"
+            ),
             "name": f"{locale.capitalize()} Test Session",
 
             # Additional settings
-            "browserstack.appium_version": "2.0.0",
             "browserstack.networkLogs": True,
             "browserstack.deviceLogs": True,
             "browserstack.debug": True,

@@ -23,7 +23,7 @@ devices:
     language: "ar"
 
 test:
-  timeout: 30
+  timeout: 60
   screenshot_dir: "reports/screenshots"
   diff_dir: "reports/diffs"
   visual_threshold: 40

@@ -1,6 +1,6 @@
 # pages/home_page.py
 # Represents the Wikipedia app home screen
-# Locators updated for Wikipedia app version 50583
+# Updated to handle Wikipedia 25th birthday promotional popup
 
 from appium.webdriver.common.appiumby import AppiumBy
 from pages.base_page import BasePage
@@ -62,20 +62,78 @@ class HomePage(BasePage):
         "//android.widget.Button[contains(@text, 'Got it')]"
     )
 
+    # Wikipedia 25th birthday popup close button
+    BIRTHDAY_CLOSE_1 = (
+        AppiumBy.XPATH,
+        "//android.widget.ImageButton[@content-desc='Close']"
+    )
+
+    BIRTHDAY_CLOSE_2 = (
+        AppiumBy.XPATH,
+        "//android.widget.ImageButton[@content-desc='close']"
+    )
+
+    BIRTHDAY_CLOSE_3 = (
+        AppiumBy.XPATH,
+        "//*[@content-desc='Close']"
+    )
+
+    BIRTHDAY_CLOSE_4 = (
+        AppiumBy.XPATH,
+        "//*[@content-desc='close']"
+    )
+
+    BIRTHDAY_CLOSE_5 = (
+        AppiumBy.XPATH,
+        "//android.widget.ImageButton[1]"
+    )
+
     # ──────────────────────────────────────────
     # Actions
     # ──────────────────────────────────────────
 
     def skip_onboarding(self):
         """
-        Handles all onboarding and permission screens.
-        Tries multiple approaches to get past them.
+        Handles all onboarding, permission, and promotional
+        screens including the Wikipedia 25th birthday popup.
+        Tries multiple approaches to get past all dialogs.
         """
         import time
+
         # Wait for app to fully launch
         time.sleep(5)
 
-        # Try skip button
+        # Handle Wikipedia 25th birthday challenge popup
+        # Try all known close button locators
+        birthday_locators = [
+            self.BIRTHDAY_CLOSE_1,
+            self.BIRTHDAY_CLOSE_2,
+            self.BIRTHDAY_CLOSE_3,
+            self.BIRTHDAY_CLOSE_4,
+            self.BIRTHDAY_CLOSE_5,
+        ]
+
+        for locator in birthday_locators:
+            if self.is_element_visible(locator, timeout=3):
+                self.tap(locator)
+                print("Dismissed birthday challenge popup")
+                time.sleep(2)
+                break
+
+        # If popup still showing tap X by screen coordinates
+        # X button is in top right corner of popup
+        if not self.is_element_visible(self.SEARCH_BAR, timeout=5):
+            try:
+                size = self.driver.get_window_size()
+                x = int(size["width"] * 0.92)
+                y = int(size["height"] * 0.08)
+                self.driver.tap([(x, y)])
+                print("Tapped close by coordinates")
+                time.sleep(2)
+            except Exception:
+                pass
+
+        # Try skip button for standard onboarding
         if self.is_element_visible(self.SKIP_BUTTON, timeout=5):
             self.tap(self.SKIP_BUTTON)
             time.sleep(2)
@@ -90,7 +148,7 @@ class HomePage(BasePage):
             self.tap(self.GOT_IT_BUTTON)
             time.sleep(2)
 
-        # Try continue button multiple times
+        # Try continue button multiple times for multi-step onboarding
         for _ in range(3):
             if self.is_element_visible(
                 self.CONTINUE_BUTTON, timeout=3
@@ -103,16 +161,12 @@ class HomePage(BasePage):
         Returns True if the home screen has loaded.
         Tries multiple locators as fallbacks.
         """
-        # Try primary search bar locator
         if self.is_element_visible(self.SEARCH_BAR, timeout=15):
             return True
-        # Try alternative search bar locator
         if self.is_element_visible(self.SEARCH_BAR_ALT, timeout=10):
             return True
-        # Try feed container
         if self.is_element_visible(self.FEED_CONTAINER, timeout=10):
             return True
-        # Try alternative feed container
         if self.is_element_visible(
             self.FEED_CONTAINER_ALT, timeout=10
         ):
